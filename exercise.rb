@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'net/http'
 require 'json'
 
@@ -5,7 +7,7 @@ TYPES = { 'IssuesEvent' => 7, 'IssueCommentEvent' => 6, 'PushEvent' => 5,
           'PullRequestReviewCommentEvent' => 4, 'WatchEvent' => 3, 'CreateEvent' => 2 }.freeze
 
 def api_url
-  'https://api.github.com/users/dhh/events/'
+  'https://api.github.com/users/dhh/events/public'
 end
 
 def calculate_score
@@ -14,7 +16,9 @@ end
 
 def dhh_score_challenge
   initialize_a_new_get_request(api_url)
-  calculate_score
+  "DHH's github score is #{calculate_score}"
+rescue StandardError => e
+  puts "Rescued2: #{e.inspect}"
 end
 
 def initialize_a_new_get_request(url)
@@ -23,18 +27,18 @@ def initialize_a_new_get_request(url)
   request['content-type'] = 'application/json'
   req_options = { use_ssl: uri.scheme == 'https' }
   request_for_api_call(uri.hostname, uri.port, req_options, request)
-  raise 'There is some issue while fetching data from URL, please try again.' if @response.empty?
+  raise 'There is some issue while fetching data from URL, please try again.' if missing_response?
 end
 
 def request_for_api_call(hostname, port, options, request)
-  begin
-    response = Net::HTTP.start(hostname, port, options) do |http|
-      http.request(request)
-    end
-  rescue Exception => e
-    puts e
+  response = Net::HTTP.start(hostname, port, options) do |http|
+    http.request(request)
   end
-  @response = JSON.parse(response.body) rescue {}
+  @response = JSON.parse(response.body)
 end
 
-puts "DHH's github score is #{dhh_score_challenge}"
+def missing_response?
+  @response.empty? || !@response.is_a?(Array)
+end
+
+puts dhh_score_challenge
